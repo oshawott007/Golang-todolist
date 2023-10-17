@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ToDo App</title>
+</head>
+<body>
+    <h1>ToDo List</h1>
+    <input type="text" id="taskInput" placeholder="Enter a new task">
+    <button id="addTask">Add Task</button>
+    <ul id="taskList"></ul>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const taskInput = document.getElementById("taskInput");
+            const addTask = document.getElementById("addTask");
+            const taskList = document.getElementById("taskList");
+
+            function createTaskElement(task) {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span>${task.title}</span>
+                    <button data-id="${task.id}" class="deleteTask">Delete</button>
+                    <button data-id="${task.id}" class="updateTask">Update</button>
+                `;
+                taskList.appendChild(li);
+            }
+
+            addTask.addEventListener("click", () => {
+                const taskTitle = taskInput.value;
+                if (taskTitle.trim() !== "") {
+                    fetch("/tasks", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ title: taskTitle, completed: false })
+                    })
+                    .then(response => response.json())
+                    .then(task => {
+                        createTaskElement(task);
+                        taskInput.value = "";
+                    });
+                }
+            });
+
+            taskList.addEventListener("click", (e) => {
+                if (e.target.classList.contains("deleteTask")) {
+                    const taskId = e.target.getAttribute("data-id");
+                    fetch(`/tasks/${taskId}`, {
+                        method: "DELETE"
+                    })
+                    .then(() => {
+                        e.target.parentElement.remove();
+                    });
+                } else if (e.target.classList.contains("updateTask")) {
+                    const taskId = e.target.getAttribute("data-id");
+                    fetch(`/tasks/${taskId}`, {
+                        method: "PUT"
+                    })
+                    .then(response => response.json())
+                    .then(task => {
+                        e.target.previousSibling.textContent = task.title;
+                    });
+                }
+            });
+
+            fetch("/tasks")
+                .then(response => response.json())
+                .then(tasks => {
+                    tasks.forEach(createTaskElement);
+                });
+        });
+    </script>
+</body>
+</html>
